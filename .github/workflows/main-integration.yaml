@@ -15,104 +15,19 @@ on:
       - "external-images.yaml"
     branches:
       - main
+      - store-logs-fix
   schedule:
     - cron: '0 5 * * *' # Run every day at 05:00 AM
 
 jobs:
-  build:
-    name: build api-gateway image
-    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
-    if: ${{ github.event_name != 'schedule' }}
-    with:
-      name: api-gateway/main/api-gateway-manager
-      dockerfile: Dockerfile
-      context: .
-      build-args: |
-        VERSION=${{ github.sha }}
-      tags: "${{ github.sha }}"
-
-  get-sha:
-    name: Get manager SHA
-    runs-on: ubuntu-latest
-    needs: [ build ]
-    # The additional if is required, because there are optional jobs
-    if: ${{ always() && !failure() && !cancelled() }}
-    outputs:
-      sha: ${{ steps.get-sha.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - id: get-sha
-        uses: ./.github/actions/get-latest-sha
-
-  integration-tests:
-    name: Integration tests
-    runs-on: ubuntu-latest
-    needs: [get-sha]
-    # The additional if is required, because there are optional jobs
-    if: ${{ always() && !failure() && !cancelled() }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/integration-tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:${{ needs.get-sha.outputs.sha }}"
-          client_id: ${{ secrets.CLIENT_ID }}
-          client_secret: ${{ secrets.CLIENT_SECRET }}
-          oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
-
-  migration-downtime-tests:
-    name: Zero Downtime Migration Tests
-    runs-on: ubuntu-latest
-    needs: [get-sha]
-    # The additional if is required, because there are optional jobs
-    if: ${{ always() && !failure() && !cancelled() }}
-    strategy:
-      fail-fast: false
-      matrix:
-        test_make_target: [ "test-migration-zero-downtime HANDLER=no_auth", "test-migration-zero-downtime HANDLER=allow", "test-migration-zero-downtime HANDLER=noop", "test-migration-zero-downtime HANDLER=jwt", "test-migration-zero-downtime HANDLER=oauth2_introspection" ]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/integration-tests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:${{ needs.get-sha.outputs.sha }}"
-          test_make_target: ${{ matrix.test_make_target }}
-
-  upgrade-tests:
-    name: Upgrade tests
-    runs-on: ubuntu-latest
-    needs: [get-sha]
-    # The additional if is required, because there are optional jobs
-    if: ${{ always() && !failure() && !cancelled() }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/upgrade-test
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:${{ needs.get-sha.outputs.sha }}"
-          client_id: ${{ secrets.CLIENT_ID }}
-          client_secret: ${{ secrets.CLIENT_SECRET }}
-          oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
-          target_branch: ${{github.ref_name}}
-
   custom-domain-integration-gcp:
     name: Custom domain integration GCP
     runs-on: ubuntu-latest
-    needs: [get-sha]
     # The additional if is required, because there are optional jobs
     if: ${{ always() && !failure() && !cancelled() }}
     steps:
+      - name: generate cluster name
+        run: echo CLUSTER_NAME=ag-$(echo $RANDOM | md5sum | head -c 7) >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -121,9 +36,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:${{ needs.get-sha.outputs.sha }}"
+          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:2.10.0"
           gardener_secret: ${{ secrets.GARDENER_TOKEN }}
-          script: ./hack/ci/custom-domain-gardener-gcp.sh
+          gardener_provider: gcp
           client_id: ${{ secrets.CLIENT_ID }}
           client_secret: ${{ secrets.CLIENT_SECRET }}
           oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
@@ -132,10 +47,11 @@ jobs:
   custom-domain-integration-aws:
     name: Custom domain integration AWS
     runs-on: ubuntu-latest
-    needs: [get-sha]
     # The additional if is required, because there are optional jobs
     if: ${{ always() && !failure() && !cancelled() }}
     steps:
+      - name: generate cluster name
+        run: echo CLUSTER_NAME=ag-$(echo $RANDOM | md5sum | head -c 7) >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -144,24 +60,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:${{ needs.get-sha.outputs.sha }}"
+          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:2.10.0"
           gardener_secret: ${{ secrets.GARDENER_TOKEN }}
-          script: ./hack/ci/custom-domain-gardener-aws.sh
+          gardener_provider: aws
           client_id: ${{ secrets.CLIENT_ID }}
           client_secret: ${{ secrets.CLIENT_SECRET }}
           oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
           dns_secret_json: ${{ secrets.DNS_SECRET_JSON }}
-
-  slack_failed_notification:
-    name: Slack Notification
-    runs-on: ubuntu-latest
-    if: ${{ failure() }}
-    needs: [integration-tests, upgrade-tests, custom-domain-integration-gcp, custom-domain-integration-aws, migration-downtime-tests]
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Notify
-        uses: ./.github/actions/slack-notification-failed-workflow
-        with:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

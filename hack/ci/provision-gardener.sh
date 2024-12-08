@@ -55,6 +55,8 @@ requiredFiles=(
 check_required_vars "${requiredVars[@]}"
 check_required_files "${requiredFiles[@]}"
 
+echo "provisioning cluster: ${CLUSTER_NAME} using provider ${GARDENER_PROVIDER}"
+
 if [ ! -f "./hack/ci/shoot_${GARDENER_PROVIDER}.yaml" ]; then
     >&2 echo "File './hack/ci/shoot_${GARDENER_PROVIDER}.yaml' required but not found"
     exit 2

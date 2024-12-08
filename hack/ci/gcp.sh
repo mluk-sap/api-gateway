@@ -16,5 +16,3 @@ export GARDENER_REGION="europe-west3"
 export GARDENER_PROVIDER_SECRET_NAME="goat"
 export GARDENER_PROJECT_NAME="goats"
 export GARDENER_CLUSTER_VERSION="1.29.9"
-
-./hack/ci/custom-domain-gardener.sh $@
