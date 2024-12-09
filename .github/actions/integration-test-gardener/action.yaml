@@ -49,7 +49,7 @@ runs:
       shell: bash
       env:
         GARDENER_KUBECONFIG: "${{ github.workspace }}/gardener_kubeconfig.yaml"
-        CLUSTER_KUBECONFIG: "${{ github.workspace }}/${{ inputs.cluster_name }}_kubeconfig.yaml"
+        CLUSTER_KUBECONFIG: "${{ github.workspace }}/${{ env.CLUSTER_NAME }}_kubeconfig.yaml"
         GARDENER_PROVIDER: ${{ inputs.gardener_provider }}
       run: "${{ github.workspace }}/hack/ci/provision-gardener.sh"
     - name: Prepare DNS SA secret

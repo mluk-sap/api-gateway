@@ -96,7 +96,7 @@ echo "Waiting for cluster to be ready..."
 kubectl wait  --kubeconfig "${GARDENER_KUBECONFIG}" --for=condition=EveryNodeReady shoot/${CLUSTER_NAME} --timeout=25m
 # create kubeconfig request, that creates a kubeconfig which is valid for one day
 
-echo "Storing kubeconfig"
+echo "Storing kubeconfig in ${CLUSTER_KUBECONFIG}"
 kubectl create  --kubeconfig "${GARDENER_KUBECONFIG}" \
     -f <(printf '{"spec":{"expirationSeconds":86400}}') \
     --raw "/apis/core.gardener.cloud/v1beta1/namespaces/garden-${GARDENER_PROJECT_NAME}/shoots/${CLUSTER_NAME}/adminkubeconfig" | \

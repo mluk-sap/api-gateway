@@ -58,18 +58,19 @@ requiredFiles=(
 check_required_vars "${requiredVars[@]}"
 check_required_files "${requiredFiles[@]}"
 
-echo "executing custom domain tests in cluster ${CLUSTER_NAME}, kubeconfig ${CLUSTER_KUBECONFIG}"
+echo "Executing custom domain tests in cluster ${CLUSTER_NAME}, kubeconfig ${CLUSTER_KUBECONFIG}"
 export KUBECONFIG="${CLUSTER_KUBECONFIG}"
 
 export CLUSTER_DOMAIN=$(kubectl get configmap -n kube-system shoot-info -o jsonpath="{.data.domain}")
-echo "cluster domain: ${CLUSTER_DOMAIN}"
+echo "Cluster domain: ${CLUSTER_DOMAIN}"
 
 export GARDENER_PROVIDER=$(kubectl get configmap -n kube-system shoot-info -o jsonpath="{.data.provider}")
-echo "gardener provider: ${GARDENER_PROVIDER}"
+echo "Gardener provider: ${GARDENER_PROVIDER}"
+
+echo "Custom domain: ${TEST_CUSTOM_DOMAIN}"
 
 export TEST_DOMAIN="${CLUSTER_DOMAIN}"
 export KYMA_DOMAIN="${CLUSTER_DOMAIN}" # it is required by env_vars.sh
-export TEST_CUSTOM_DOMAIN="goat.build.kyma-project.io"
 export IS_GARDENER=true
 
 # Add pwd to path to be able to use binaries downloaded in scripts
