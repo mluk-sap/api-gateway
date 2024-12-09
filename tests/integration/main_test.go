@@ -39,7 +39,7 @@ func TestCustomDomain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Custom domain testsuite %s", err.Error())
 	}
-	defer ts.TearDown()
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -179,6 +179,14 @@ func cleanUp(c testcontext.Testsuite, orgJwtHandler string) {
 	if err != nil {
 		log.Print(err.Error())
 		panic("unable to switch back to original jwtHandler")
+	}
+}
+
+func tearDown(t *testing.T, testsuite testcontext.Testsuite) {
+	if t.Failed() {
+		log.Printf("Test suite failed, skipping teardown")
+	} else {
+		testsuite.TearDown()
 	}
 }
 

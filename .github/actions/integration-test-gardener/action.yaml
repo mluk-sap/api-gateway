@@ -97,7 +97,7 @@ runs:
     - name: Wait before deletion
       if: failure()
       shell: bash
-      run: "sleep 300"
+      run: "sleep 600"
     - name: Deprovision cluster
       if: always()
       shell: bash
