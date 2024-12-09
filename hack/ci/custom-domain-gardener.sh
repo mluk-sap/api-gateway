@@ -76,38 +76,40 @@ export IS_GARDENER=true
 # Add pwd to path to be able to use binaries downloaded in scripts
 export PATH="${PATH}:${PWD}"
 
-echo "installing istio"
+echo "Installing istio"
 make install-istio
 
-echo "deploying api-gateway"
+echo "Deploying api-gateway"
 make deploy
 
-echo "waiting for the ingress gateway external address"
+echo "Waiting for the ingress gateway external address"
 [ "$GARDENER_PROVIDER" == "aws" ] && address_field="{.status.loadBalancer.ingress[0].hostname}" || address_field="{.status.loadBalancer.ingress[0].ip}"
 kubectl wait --timeout=300s --namespace istio-system services/istio-ingressgateway --for=jsonpath="${address_field}"
 ingress_external_address=$(kubectl get services --namespace istio-system istio-ingressgateway --output jsonpath="${address_field}")
 ingress_external_status_port=$(kubectl get services --namespace istio-system istio-ingressgateway --output jsonpath='{.spec.ports[?(@.name=="status-port")].targetPort}')
 
-echo "determined ingress external address: ${ingress_external_address} and external status port: ${ingress_external_status_port}"
+echo "Determined ingress external address: ${ingress_external_address} and external status port: ${ingress_external_status_port}"
 
-echo "waiting until it is possible to connect to the ingress gateway"
+echo "Waiting until it is possible to connect to the ingress gateway"
 trial=1
 # check if it is possible to establish connection to the ingress gateway (the exact http status code doesn't matter)
 until curl --silent --output /dev/null "http://${ingress_external_address}:${ingress_external_status_port}"
 do
   if (( trial >= 60 ))
   then
-     echo "exceeded number of trials while waiting for the ingress gateway, giving up..."
+     echo "Exceeded number of trials while waiting for the ingress gateway, giving up..."
      exit 4
   fi
-  echo "ingress gateway does not respond, trying again..."
+  echo "Ingress gateway does not respond, trying again..."
   sleep 10
   trial=$((trial + 1))
 done
-echo "ingress gateway responded"
+echo "Ingress gateway responded"
 
+echo "Executing tests"
 for make_target in "$@"
 do
-    echo "executing make target $make_target"
+    echo "Executing make target $make_target"
     make $make_target
 done
+echo "Tests finished"

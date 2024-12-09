@@ -34,7 +34,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/main/api-gateway-manager:2.10.0"
+          manager_image: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/releases/api-gateway-manager:2.10.0"
           gardener_secret: ${{ secrets.GARDENER_TOKEN }}
           gardener_provider: gcp
           dns_secret_json: ${{ secrets.DNS_SECRET_JSON }}
