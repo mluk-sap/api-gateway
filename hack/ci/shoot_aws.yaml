@@ -2,7 +2,7 @@ apiVersion: core.gardener.cloud/v1beta1
 kind: Shoot
 metadata:
   name: ${CLUSTER_NAME}
-  labels:
+  annotations:
     github.server.url: "${GITHUB_SERVER_URL}"
     github.repository: "${GITHUB_REPOSITORY}"
     github.run.id: "${GITHUB_RUN_ID}"
