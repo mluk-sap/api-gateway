@@ -94,6 +94,10 @@ runs:
       with:
         name: html-reports-${{ github.job }}-${{ inputs.test_make_target }}
         path: tests/integration/reports/
+    - name: Wait before deletion
+      if: always()
+      shell: bash
+      run: "sleep 300"
     - name: Deprovision cluster
       if: always()
       shell: bash

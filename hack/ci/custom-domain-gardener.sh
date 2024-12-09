@@ -79,7 +79,7 @@ export PATH="${PATH}:${PWD}"
 echo "Installing istio"
 make install-istio
 
-echo "Deploying api-gateway"
+echo "Deploying api-gateway, image: ${IMG}"
 make deploy
 
 echo "Waiting for the ingress gateway external address"
