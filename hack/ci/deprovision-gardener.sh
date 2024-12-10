@@ -59,7 +59,10 @@ requiredFiles=(
 check_required_vars "${requiredVars[@]}"
 check_required_files "${requiredFiles[@]}"
 
-echo "deprovisioning cluster: ${CLUSTER_NAME}"
+echo "Waiting before deprovisioning"
+sleep 300
+
+echo "Deprovisioning cluster: ${CLUSTER_NAME}"
 
 kubectl annotate shoot "${CLUSTER_NAME}" confirmation.gardener.cloud/deletion=true \
     --overwrite \
