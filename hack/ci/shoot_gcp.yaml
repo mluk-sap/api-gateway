@@ -6,6 +6,7 @@ metadata:
     github.server.url: "${GITHUB_SERVER_URL}"
     github.repository: "${GITHUB_REPOSITORY}"
     github.run.id: "${GITHUB_RUN_ID}"
+    github.run.attempt: "${GITHUB_RUN_ATTEMPT}"
 spec:
   secretBindingName: ${GARDENER_PROVIDER_SECRET_NAME}
   cloudProfileName: gcp
