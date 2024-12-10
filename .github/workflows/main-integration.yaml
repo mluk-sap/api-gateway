@@ -15,7 +15,6 @@ on:
       - "external-images.yaml"
     branches:
       - main
-      - store-logs-fix
   schedule:
     - cron: '0 5 * * *' # Run every day at 05:00 AM
 
