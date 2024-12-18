@@ -361,7 +361,7 @@ func (m *Manager) UpdateResourceWithoutNS(client dynamic.Interface, resourceSche
 // DeleteResource deletes a given k8s resource
 func (m *Manager) DeleteResource(client dynamic.Interface, resourceSchema schema.GroupVersionResource, namespace string, resourceName string) error {
 	return retry.Do(func() error {
-		deletePolicy := metav1.DeletePropagationForeground
+		deletePolicy := metav1.DeletePropagationBackground
 		deleteOptions := &metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}
@@ -377,7 +377,7 @@ func (m *Manager) DeleteResource(client dynamic.Interface, resourceSchema schema
 // DeleteResourceWithoutNS deletes a given k8s resource without namespace
 func (m *Manager) DeleteResourceWithoutNS(client dynamic.Interface, resourceSchema schema.GroupVersionResource, resourceName string) error {
 	return retry.Do(func() error {
-		deletePolicy := metav1.DeletePropagationForeground
+		deletePolicy := metav1.DeletePropagationBackground
 		deleteOptions := &metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}
