@@ -117,7 +117,7 @@ jobs:
           test_custom_domain: ${{ vars.TEST_CUSTOM_DOMAIN }}
 
   e2e-custom-domain-aws:
-    name: E2E custom domain tests AWS
+    name: E2E custom domain tests gcp
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

@@ -3,7 +3,7 @@ description: 'Get latest SHA of main build executed for API Gateway manager'
 outputs:
   sha:
     description: 'SHA of the latest API Gateway Manager main build'
-    value: ${{ steps.get-sha.outputs.sha }}
+    value: fb0c05694fe2eb1429717950cf8bcac54d584d13
 runs:
   using: "composite"
   steps:
