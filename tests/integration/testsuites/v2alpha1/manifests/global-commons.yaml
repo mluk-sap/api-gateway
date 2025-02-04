@@ -4,6 +4,7 @@ metadata:
   name: "{{.Namespace}}"
   labels:
     istio-injection: enabled
+    kyma-project.io/created-by-tests: true
 ---
 apiVersion: v1
 kind: Namespace
@@ -11,3 +12,4 @@ metadata:
   name: "{{.Namespace}}-2"
   labels:
     istio-injection: enabled
+    kyma-project.io/created-by-tests: true

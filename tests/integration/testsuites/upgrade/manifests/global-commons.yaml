@@ -4,3 +4,4 @@ metadata:
   name: "{{.Namespace}}"
   labels:
     istio-injection: enabled
+    kyma-project.io/created-by-tests: true

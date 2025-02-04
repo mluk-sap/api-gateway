@@ -19,6 +19,7 @@ kind: Namespace
 metadata:
   labels:
     kubernetes.io/metadata.name: ext-auth
+    kyma-project.io/created-by-tests: true
   name: ext-auth
 ---
 apiVersion: v1

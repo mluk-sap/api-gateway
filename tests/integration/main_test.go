@@ -31,7 +31,8 @@ func TestIstioJwt(t *testing.T) {
 		log.Print(err.Error())
 		t.Fatalf("unable to switch to Istio jwtHandler")
 	}
-	defer cleanUp(ts, originalJwtHandler)
+	defer cleanUp(t, ts, originalJwtHandler)
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -40,7 +41,7 @@ func TestCustomDomain(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Custom domain testsuite %s", err.Error())
 	}
-	defer ts.TearDown()
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -55,8 +56,8 @@ func TestUpgrade(t *testing.T) {
 		log.Print(err.Error())
 		t.Fatalf("unable to switch to Istio jwtHandler")
 	}
-	defer cleanUp(ts, originalJwtHandler)
-	defer ts.TearDown()
+	defer cleanUp(t, ts, originalJwtHandler)
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -70,7 +71,7 @@ func TestOryJwt(t *testing.T) {
 		log.Print(err.Error())
 		t.Fatalf("unable to switch to Ory jwtHandler")
 	}
-	defer cleanUp(ts, originalJwtHandler)
+	defer cleanUp(t, ts, originalJwtHandler)
 	runTestsuite(t, ts)
 }
 
@@ -79,7 +80,7 @@ func TestGateway(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create Gateway testsuite %s", err.Error())
 	}
-	defer ts.TearDown()
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -93,7 +94,7 @@ func TestV2alpha1(t *testing.T) {
 		log.Print(err.Error())
 		t.Fatalf("unable to switch to Ory jwtHandler")
 	}
-	defer cleanUp(ts, originalJwtHandler)
+	defer cleanUp(t, ts, originalJwtHandler)
 	runTestsuite(t, ts)
 }
 
@@ -102,7 +103,7 @@ func TestRateLimit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create ratelimit testsuite %s", err.Error())
 	}
-	defer ts.TearDown()
+	defer tearDown(t, ts)
 	runTestsuite(t, ts)
 }
 
@@ -175,12 +176,24 @@ func createGoDogOpts(t *testing.T, featuresPath []string, concurrency int) godog
 	return goDogOpts
 }
 
-func cleanUp(c testcontext.Testsuite, orgJwtHandler string) {
+func cleanUp(t *testing.T, c testcontext.Testsuite, orgJwtHandler string) {
+	if t.Failed() {
+		log.Printf("Tests failed, skipping jwt handler cleanup")
+		return
+	}
 	_, err := SwitchJwtHandler(c, orgJwtHandler)
 	if err != nil {
 		log.Print(err.Error())
 		panic("unable to switch back to original jwtHandler")
 	}
+}
+
+func tearDown(t *testing.T, ts testcontext.Testsuite) {
+	if t.Failed() {
+		log.Printf("Tests failed, skipping teardown")
+		return
+	}
+	ts.TearDown()
 }
 
 func shouldExportResults() bool {

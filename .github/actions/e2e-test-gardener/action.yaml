@@ -109,8 +109,14 @@ runs:
       with:
         name: html-reports_${{ github.job }}_${{ github.run_id }}_${{ inputs.test_make_target }}_${{ inputs.gardener_provider }}
         path: tests/integration/reports/
+    - name: Cleanup cluster
+      shell: bash
+      if: ${{ !failure() }}
+      env:
+        CLUSTER_KUBECONFIG: "${{ github.workspace }}/${{ env.CLUSTER_NAME }}_kubeconfig.yaml"
+      run: "${{ github.workspace }}/hack/ci/cleanup-gardener.sh"
     - name: Deprovision cluster
-      if: always()
+      if: ${{ !failure() }}
       shell: bash
       env:
         GARDENER_KUBECONFIG: "${{ github.workspace }}/gardener_kubeconfig.yaml"
