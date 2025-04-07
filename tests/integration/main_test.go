@@ -153,7 +153,7 @@ func runTestsuite(t *testing.T, testsuite testcontext.Testsuite) {
 					log.Printf("After suite hooks executed")
 
 					log.Printf("Tearing down test suite")
-					testsuite.TearDown()
+					//testsuite.TearDown()
 				}
 			})
 		},
