@@ -192,23 +192,11 @@ func createGoDogOpts(t *testing.T, featuresPath []string, concurrency int) godog
 }
 
 func cleanUp(t *testing.T, c testcontext.Testsuite, orgJwtHandler string) {
-	if t.Failed() {
-		log.Printf("Tests failed, skipping jwt handler cleanup")
-		return
-	}
-	_, err := SwitchJwtHandler(c, orgJwtHandler)
-	if err != nil {
-		log.Print(err.Error())
-		panic("unable to switch back to original jwtHandler")
-	}
+
 }
 
 func tearDown(t *testing.T, ts testcontext.Testsuite) {
-	if t.Failed() {
-		log.Printf("Tests failed, skipping teardown")
-		return
-	}
-	ts.TearDown()
+
 }
 
 func shouldExportResults() bool {
