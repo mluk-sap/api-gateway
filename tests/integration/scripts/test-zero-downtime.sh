@@ -153,10 +153,20 @@ send_requests() {
   local url="$2"
   local bearer_token="$3"
   local request_count=0
+  local max_request_count=0
   echo "zero-downtime: thread ${thread}, sending requests to ${url}"
 
   while true; do
+    if [ -f "test_finished" ] && [ "$max_request_count" == 0 ]; then
+      echo "zero-downtime: thread ${thread}, noticed the end of migration test when doing ${request_count} requests. Doing few more requests"
+      ((max_request_count = request_count + 100))
+    elif [ -f "test_finished" ] && [ "$max_request_count" != 0 ] && [ "$request_count" -gt "$max_request_count" ]; then
+      echo "zero-downtime: thread ${thread}, test successful after ${request_count} requests. Stopping requests after test has been finished."
+      exit 0
+    fi
+
     ((request_count = request_count + 1))
+    #echo "zero-downtime: thread ${thread}, doing request $request_count"
 
     curl_exit_code=0
     curl_response=""
@@ -188,11 +198,14 @@ send_requests() {
         exit 0
       fi
     fi
+
+
   done
 }
 
 start() {
   local handler="$1"
+  rm -f "test_finished"
 
   # Start the requests in the background as soon as the APIRule is ready
   run_zero_downtime_requests "$handler" &
@@ -201,10 +214,16 @@ start() {
   echo "zero-downtime: Starting integration test scenario for handler '$handler'"
 
   go test -count=1 -timeout 15m ./tests/integration -v -race -run "TestOryJwt/Migrate_v1beta1_APIRule_with_${handler}_handler" && test_exit_code=$? || test_exit_code=$?
+  touch "test_finished"
+
   if [ "${test_exit_code}" -ne 0 ]; then
     echo "zero-downtime: Test execution failed"
     return 1
+  else
+    echo "zero-downtime: Test execution succeeded"
   fi
+
+  echo "zero-downtime: Waiting for pid $zero_downtime_requests_pid to finish"
 
   wait $zero_downtime_requests_pid && zero_downtime_exit_code=$? || zero_downtime_exit_code=$?
   if [ "${zero_downtime_exit_code}" -ne 0 ]; then
