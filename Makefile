@@ -131,14 +131,14 @@ test-integration-v2: generate ## Run API Gateway integration tests with v2 API.
 
 .PHONY: install-istio
 install-istio: create-namespace
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
+	kubectl apply -f ./istio-manager.yaml
 	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-default-cr.yaml
 	kubectl wait -n kyma-system istios/default --for=jsonpath='{.status.state}'=Ready --timeout=300s
 
 
 .PHONY: install-istio-manager
 install-istio-manager: create-namespace
-	kubectl apply -f https://github.com/kyma-project/istio/releases/latest/download/istio-manager.yaml
+	kubectl apply -f ./istio-manager.yaml
 
 ##@ Build
 
