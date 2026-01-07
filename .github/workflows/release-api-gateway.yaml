@@ -31,14 +31,27 @@ jobs:
       - name: Get current release
         id: set-release
         run: |
-          CURRENT="${{ github.event.inputs.version }}"
-          echo "Current release: $CURRENT"
-          echo "current_release=$CURRENT" >> $GITHUB_OUTPUT
+          release_version="${{ github.event.inputs.version }}"
+          echo "Current release: $release_version"
+          echo "current_release=$release_version" >> $GITHUB_OUTPUT
+
+      - name: Ensure that release is done from the proper branch
+        id: check-branch-name
+        run: |
+          branch=$(git rev-parse --abbrev-ref HEAD)
+          current_release="${{ steps.set-release.outputs.current_release }}"
+          echo "Branch name: ${branch}"
+          major=$(echo "${current_release}" | cut -d. -f1)
+          minor=$(echo "${current_release}" | cut -d. -f2)
+          if [ ! "${branch}" == "release-${major}.${minor}" ]; then
+            echo "Branch ${branch} is not proper for the release ${current_release}"
+            exit 1
+          fi
 
       - name: Check whether image already exists before release
         id: check-whether-image-exists-before-release
         run: |
-          image="${{ env.image-name }}:${{ github.event.inputs.version }}"
+          image="${{ env.image-name }}:${{ steps.set-release.outputs.current_release }}"
           if docker pull "${image}" >/dev/null 2>&1; then
             echo "Image already exists, which is unexpected before the release"
             exit 1
@@ -51,16 +64,6 @@ jobs:
           if grep -q bdba sec-scanners-config.yaml; then
             echo "sec-scanners-config file contains bdba section, which would leak into OCM manifest"
             exit 1
-          fi
-
-      - name: Ensure that release is done from the proper branch
-        id: check-branch-name
-        run: |
-          echo "Branch name: $(git rev-parse --abbrev-ref HEAD)"
-          major=$(echo "${{ github.event.inputs.version }}" | cut -d. -f1)
-          minor=$(echo "${{ github.event.inputs.version }}" | cut -d. -f2)
-          if [ "$(git rev-parse --abbrev-ref HEAD)" == "release-${major}.${minor}" ]; then
-            echo ok;
           fi
 
       - name: Get latest release before releasing
@@ -101,7 +104,7 @@ jobs:
         name: get image
         shell: bash
         run: |
-          image="${{ env.image-name }}:${{ github.event.inputs.version }}"
+          image="${{ env.image-name }}:${{ needs.check-prerequisites.outputs.current_release }}"
           echo "image=${image}"
           echo "image=${image}" >> $GITHUB_OUTPUT
       - id: check-image
@@ -109,12 +112,29 @@ jobs:
         shell: bash
         run: docker pull "${{ steps.get-image.outputs.image }}"
 
+  #############################################
+  #
+  # Unit tests
+  #
+  #############################################
+
   unit-tests:
+    name: Unit, integration tests & lint
+    needs: [ get-image ]
     uses: ./.github/workflows/call-unit-lint.yaml
+    secrets: inherit
+
+  #############################################
+  #
+  # E2E tests
+  # Run on: AWS, K3D
+  #
+  #############################################
 
   e2e-tests-k3d:
     name: E2E tests K3D
     runs-on: ubuntu-latest
+    needs: [ get-image ]
     strategy:
       fail-fast: false
       matrix:
@@ -134,10 +154,11 @@ jobs:
   e2e-tests-aws:
     name: E2E tests AWS
     runs-on: ubuntu-latest
+    needs: [ get-image ]
     strategy:
       fail-fast: false
       matrix:
-        test_make_target: [ "test-integration-ory", "test-integration-istio", "test-integration-v2alpha1", "test-integration-gateway", "test-integration-rate-limit" ]
+        test_make_target: [ "test-integration-ory", "test-integration-istio", "test-integration-v2alpha1", "test-integration-gateway", "test-integration-rate-limit", "test-integration-v2" ]
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/e2e-test-gardener
@@ -154,9 +175,17 @@ jobs:
           test_oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
           test_make_target: ${{ matrix.test_make_target }}
 
+  #############################################
+  #
+  # Zero downtime tests
+  # Run on: AWS, K3D
+  #
+  #############################################
+
   migration-downtime-tests-k3d:
     name: Zero Downtime Migration Tests
     runs-on: ubuntu-latest
+    needs: [ get-image ]
     strategy:
       fail-fast: false
       matrix:
@@ -174,6 +203,7 @@ jobs:
   migration-downtime-tests-aws:
     name: Zero Downtime Migration Tests AWS
     runs-on: ubuntu-latest
+    needs: [ get-image ]
     strategy:
       fail-fast: false
       matrix:
@@ -194,6 +224,13 @@ jobs:
           test_oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
           test_make_target: test-migration-zero-downtime-${{ matrix.handler }}
 
+  #############################################
+  #
+  # Upgrade tests
+  # Run on: K3D
+  #
+  #############################################
+
   upgrade-tests-k3d:
     name: Upgrade tests
     runs-on: ubuntu-latest
@@ -209,7 +246,14 @@ jobs:
           test_client_id: ${{ secrets.CLIENT_ID }}
           test_client_secret: ${{ secrets.CLIENT_SECRET }}
           test_oidc_well_known_url: "${{ secrets.OIDC_ISSUER_URL }}/.well-known/openid-configuration"
-          target_branch: ${{ github.ref }}
+          target_branch: ${{github.ref_name}}
+
+  #############################################
+  #
+  # Custom domain tests
+  # Run on: AWS, GCP
+  #
+  #############################################
 
   e2e-custom-domain-gcp:
     name: E2E custom domain tests GCP
