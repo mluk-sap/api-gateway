@@ -96,7 +96,7 @@ jobs:
   get-image:
     name: Get api-gateway image
     runs-on: ubuntu-latest
-    needs: [ build-image ]
+    #needs: [ build-image ]
     outputs:
       image: "${{ steps.get-image.outputs.image }}"
     steps:
@@ -104,7 +104,8 @@ jobs:
         name: get image
         shell: bash
         run: |
-          image="${{ env.image-name }}:${{ needs.check-prerequisites.outputs.current_release }}"
+          #image="${{ env.image-name }}:${{ needs.check-prerequisites.outputs.current_release }}"
+          image="${{ env.image-name }}:3.4.1"
           echo "image=${image}"
           echo "image=${image}" >> $GITHUB_OUTPUT
       - id: check-image
