@@ -71,7 +71,7 @@ jobs:
         run: |
           rel_notes_file="docs/release-notes/${{ steps.set-release.outputs.current_release }}.md"
           if [ ! -f "${rel_notes_file}" ]; then
-            echo "File with release notes ${} does not exist"
+            echo "File with release notes ${rel_notes_file} does not exist"
             exit 4
           fi
 
