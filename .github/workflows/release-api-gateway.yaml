@@ -54,7 +54,7 @@ jobs:
           image="${{ env.image-name }}:${{ steps.set-release.outputs.current_release }}"
           if docker pull "${image}" >/dev/null 2>&1; then
             echo "Image already exists, which is unexpected before the release"
-            exit 1
+            exit 2
           fi
 
       - name: Ensure that sec-scanners-config doesn't contain bdba section
@@ -63,7 +63,16 @@ jobs:
           cat sec-scanners-config.yaml
           if grep -q bdba sec-scanners-config.yaml; then
             echo "sec-scanners-config file contains bdba section, which would leak into OCM manifest"
-            exit 1
+            exit 3
+          fi
+
+      - name: Check whether release notes exist
+        id: check-release-notes
+        run: |
+          rel_notes_file="docs/release-notes/${{ steps.set-release.outputs.current_release }}.md"
+          if [ ! -f "${rel_notes_file}" ]; then
+            echo "File with release notes ${} does not exist"
+            exit 4
           fi
 
       - name: Get latest release before releasing
