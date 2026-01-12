@@ -105,7 +105,8 @@ jobs:
   get-image:
     name: Get api-gateway image
     runs-on: ubuntu-latest
-    #needs: [ build-image ]
+    #needs: [ build-image, check-prerequisites ]
+    needs: [ check-prerequisites ]
     outputs:
       image: "${{ steps.get-image.outputs.image }}"
     steps:
@@ -322,11 +323,16 @@ jobs:
 
   ## CONTINUE IF TESTS ARE GREEN
 
-  create-draft:
-    name: Create draft release
+  wait-for-tests:
+    name: Wait for tests
     runs-on: ubuntu-latest
     needs: [ check-prerequisites, unit-tests ]
     #needs: [check-prerequisites, build-image, unit-tests, e2e-tests-k3d, e2e-tests-aws, upgrade-tests-k3d, e2e-custom-domain-gcp, e2e-custom-domain-aws, migration-downtime-tests-k3d, migration-downtime-tests-aws ]
+
+  create-draft:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    needs: [ check-prerequisites, wait-for-tests ]
     outputs:
       release_id: ${{ steps.create-draft.outputs.release_id }}
     steps:
