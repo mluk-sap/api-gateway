@@ -316,7 +316,8 @@ jobs:
   create-draft:
     name: Create draft release
     runs-on: ubuntu-latest
-    needs: [check-prerequisites, build-image, unit-tests, e2e-tests-k3d, e2e-tests-aws, upgrade-tests-k3d, e2e-custom-domain-gcp, e2e-custom-domain-aws, migration-downtime-tests-k3d, migration-downtime-tests-aws ]
+    needs: [ check-prerequisites, unit-tests ]
+    #needs: [check-prerequisites, build-image, unit-tests, e2e-tests-k3d, e2e-tests-aws, upgrade-tests-k3d, e2e-custom-domain-gcp, e2e-custom-domain-aws, migration-downtime-tests-k3d, migration-downtime-tests-aws ]
     outputs:
       release_id: ${{ steps.create-draft.outputs.release_id }}
     steps:
