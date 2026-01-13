@@ -21,8 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-tags: true
 
       - name: Validate version format
         id: validate-version
@@ -52,7 +50,7 @@ jobs:
         env:
           CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          git tag -l
+          git fetch --tags
           if [ $(git tag -l "$version") ]; then
             echo "Image already exists, which is unexpected before the release"
             exit 3
