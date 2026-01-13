@@ -20,7 +20,7 @@ IMG="${image_name}:${release_tag}" VERSION=release_tag make generate-manifests
 echo "Publish manager yaml"
 manager_yaml_asset_name="api-gateway-manager.yaml"
 manager_yaml_asset_path="api-gateway-manager.yaml"
-curl -v -S -f -L \
+curl -s -S -f -L \
   -X POST \
   -H "Accept: application/vnd.github+json" \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
@@ -32,7 +32,7 @@ curl -v -S -f -L \
 echo "Publish default CR"
 default_cr_asset_name="apigateway-default-cr.yaml"
 default_cr_path="config/samples/operator_v1alpha1_apigateway.yaml"
-curl -v -S -f -L \
+curl -s -S -f -L \
   -X POST \
   -H "Accept: application/vnd.github+json" \
   -H "Authorization: Bearer ${GITHUB_TOKEN}" \
