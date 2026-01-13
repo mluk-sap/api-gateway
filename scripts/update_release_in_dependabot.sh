@@ -9,12 +9,12 @@ set -E          # needs to be set if we want the ERR trap
 set -o pipefail # prevents errors in a pipeline from being masked
 
 current_release=$1
+dependabot_file=$2
 
 major=$(echo "${current_release}" | cut -d. -f1)
 minor=$(echo "${current_release}" | cut -d. -f2)
 current_major_minor="${major}.${minor}"
 
-dependabot_file=".github/dependabot.yml"
 version_regex='\(.*\"release-\)\(.*\)\(\".*\)'
 
 major_minor_from_dependabot=$(sed -n "s|${version_regex}|\2|p" "${dependabot_file}" | head -n1)

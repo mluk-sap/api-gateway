@@ -399,22 +399,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Checkout repository main branch
+        uses: actions/checkout@v6
         with:
           ref: main
-          token: ${{ secrets.GOAT_BOT_REPO_ACCESS }}
+          path: main
 
       - name: Update Dependabot
         env:
-          GH_TOKEN: ${{ secrets.GOAT_BOT_REPO_ACCESS }}
           CURRENT_RELEASE: "${{ github.event.inputs.version }}"
+        run: |
+          ./scripts/update_release_in_dependabot.sh "${CURRENT_RELEASE}" "main/.github/dependabot.yml"
+
+      - name: Commit updated dependabot config
+        env:
+          GH_TOKEN: ${{ secrets.GOAT_BOT_REPO_ACCESS }}
           USERNAME: ${{ vars.ACTIONS_BOT_NAME }}
           EMAIL: ${{ vars.ACTIONS_BOT_EMAIL }}
+        working-directory: main
         run: |
           git config user.name "${USERNAME}"
           git config user.email "${EMAIL}"
-          
-          ./scripts/update_release_in_dependabot.sh
-          
           git add .
           if git diff-index --quiet HEAD; then
             echo "No changes detected, skipping commit"
