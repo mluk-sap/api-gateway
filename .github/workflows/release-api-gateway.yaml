@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-tags: true
 
       - name: Validate version format
         id: validate-version
@@ -52,6 +52,7 @@ jobs:
         env:
           CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
+          git tag -l
           if [ $(git tag -l "$version") ]; then
             echo "Image already exists, which is unexpected before the release"
             exit 3
