@@ -13,48 +13,59 @@ on:
         required: true
 
 env:
-  image-name: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/releases/api-gateway-manager"
+  IMAGE_NAME: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/releases/api-gateway-manager"
 
 jobs:
   check-prerequisites: 
     name: Check prerequisites
     runs-on: ubuntu-latest
-    outputs:
-      current_release: ${{ steps.set-release.outputs.current_release }}
-      latest_before: ${{ steps.get-latest.outputs.latest_before }}
-      is_patch: ${{ steps.check_patch.outputs.is_patch }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Get current release
-        id: set-release
+      - name: Validate version format
+        id: validate-version
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          release_version="${{ github.event.inputs.version }}"
-          echo "Current release: $release_version"
-          echo "current_release=$release_version" >> $GITHUB_OUTPUT
-
-      - name: Ensure that release is done from the proper branch
-        id: check-branch-name
-        run: |
-          branch=$(git rev-parse --abbrev-ref HEAD)
-          current_release="${{ steps.set-release.outputs.current_release }}"
-          echo "Branch name: ${branch}"
-          major=$(echo "${current_release}" | cut -d. -f1)
-          minor=$(echo "${current_release}" | cut -d. -f2)
-          if [ ! "${branch}" == "release-${major}.${minor}" ]; then
-            echo "Branch ${branch} is not proper for the release ${current_release}"
+          if [[ ! "${CURRENT_RELEASE}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version ${CURRENT_RELEASE} does not have proper format!";
             exit 1
           fi
 
-      - name: Check whether image already exists before release
-        id: check-whether-image-exists-before-release
+      - name: Ensure that release is done from the proper branch
+        id: check-branch-name
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          BRANCH_NAME: ${{ github.ref_name }}
         run: |
-          image="${{ env.image-name }}:${{ steps.set-release.outputs.current_release }}"
+          major=$(echo "${CURRENT_RELEASE}" | cut -d. -f1)
+          minor=$(echo "${CURRENT_RELEASE}" | cut -d. -f2)
+          if [ ! "${BRANCH_NAME}" == "release-${major}.${minor}" ]; then
+            echo "Branch ${BRANCH_NAME} is not proper for the release ${CURRENT_RELEASE}"
+            exit 2
+          fi
+
+      - name: Check whether tag already exists before the release
+        id: check-whether-tag-exists-before-release
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+        run: |
+          if [ $(git tag -l "$version") ]; then
+            echo "Image already exists, which is unexpected before the release"
+            exit 3
+          fi
+
+      - name: Check whether image already exists before the release
+        id: check-whether-image-exists-before-release
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+        run: |
+          image="${IMAGE_NAME}:${CURRENT_RELEASE}"
           if docker pull "${image}" >/dev/null 2>&1; then
             echo "Image already exists, which is unexpected before the release"
-            exit 2
+            exit 4
           fi
 
       - name: Ensure that sec-scanners-config doesn't contain bdba section
@@ -63,32 +74,18 @@ jobs:
           cat sec-scanners-config.yaml
           if grep -q bdba sec-scanners-config.yaml; then
             echo "sec-scanners-config file contains bdba section, which would leak into OCM manifest"
-            exit 3
+            exit 5
           fi
 
       - name: Check whether release notes exist
         id: check-release-notes
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          rel_notes_file="docs/release-notes/${{ steps.set-release.outputs.current_release }}.md"
+          rel_notes_file="docs/release-notes/${CURRENT_RELEASE}.md"
           if [ ! -f "${rel_notes_file}" ]; then
             echo "File with release notes ${rel_notes_file} does not exist"
-            exit 4
-          fi
-
-      - name: Get latest release before releasing
-        id: get-latest
-        run: |
-          LATEST=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | grep '"tag_name"' | cut -d '"' -f 4)
-          echo "Latest release before releasing: $LATEST"
-          echo "latest_before=$LATEST" >> $GITHUB_OUTPUT
-
-      - name: Determine if this is a patch release
-        id: check_patch
-        run: |
-          if [[ "${{ steps.set-release.outputs.current_release }}" =~ ^[0-9]+\.[0-9]+\.[1-9][0-9]*$ ]]; then
-            echo "is_patch=true" >> $GITHUB_OUTPUT
-          else
-            echo "is_patch=false" >> $GITHUB_OUTPUT
+            exit 6
           fi
 
   build-image:
@@ -100,8 +97,8 @@ jobs:
       dockerfile: Dockerfile
       context: .
       build-args: |
-        VERSION=${{ needs.check-prerequisites.outputs.current_release }}
-      tags: "${{ needs.check-prerequisites.outputs.current_release }}"
+        VERSION="${{ github.event.inputs.version }}"
+      tags: "${{ github.event.inputs.version }}"
 
   get-image:
     name: Get api-gateway image
@@ -114,9 +111,11 @@ jobs:
       - id: get-image
         name: get image
         shell: bash
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          #image="${{ env.image-name }}:${{ needs.check-prerequisites.outputs.current_release }}"
-          image="${{ env.image-name }}:3.4.1"
+          #image="${IMAGE_NAME}:${CURRENT_RELEASE}"
+          image="${IMAGE_NAME}:3.4.1"
           echo "image=${image}"
           echo "image=${image}" >> $GITHUB_OUTPUT
       - id: check-image
@@ -328,22 +327,28 @@ jobs:
       - name: Create changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ needs.check-prerequisites.outputs.current_release }}
-        run: ./scripts/create_changelog.sh $RELEASE
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+        run: ./scripts/create_changelog.sh "${CURRENT_RELEASE}" "CHANGELOG.md"
 
       - name: Create draft release
         id: create-draft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          RELEASE_ID=$(./scripts/create_draft_release.sh ${{ needs.check-prerequisites.outputs.current_release }})
-          echo "release_id=$RELEASE_ID" >> $GITHUB_OUTPUT
+          release_notes_file="docs/release-notes/${CURRENT_RELEASE}.md"
+          changelog_file="CHANGELOG.md"
+          ./scripts/create_draft_release.sh "${CURRENT_RELEASE}" "${release_notes_file}" "${changelog_file}" "release_id.txt"
+          release_id=$(cat "release_id.txt")
+          echo "release_id=${release_id}" >> $GITHUB_OUTPUT
 
       - name: Create lightweight tag
+        env:
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
         run: |
-          git tag ${{ needs.check-prerequisites.outputs.current_release }}
-          git push origin ${{ needs.check-prerequisites.outputs.current_release }}
+          git tag "${CURRENT_RELEASE}"
+          git push origin "${CURRENT_RELEASE}"
 
   publish-release:
     name: Publish release
@@ -359,13 +364,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-        run: ./scripts/publish_assets.sh ${{ needs.check-prerequisites.outputs.current_release }} ${{ needs.create-draft.outputs.release_id }}
+          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          RELEASE_ID: ${{ needs.create-draft.outputs.release_id }}
+        run: ./scripts/publish_assets.sh "${IMAGE_NAME}" "${CURRENT_RELEASE}" "${RELEASE_ID}"
 
       - name: Publish release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-        run: ./scripts/publish_release.sh ${{ needs.create-draft.outputs.release_id }}
+          RELEASE_ID: ${{ needs.create-draft.outputs.release_id }}
+        run: ./scripts/publish_release.sh "${RELEASE_ID}"
 
   notify:
     name: Notify
@@ -381,10 +389,10 @@ jobs:
           payload-templated: true
           payload: |
             repository: ${{ github.repository }},
-            release: ${{ needs.check-prerequisites.outputs.current_release }}
+            release: "${{ github.event.inputs.version }}"
 
-  post-release-adjustments:
-    name: Post-Release adjustments
+  adjust-dependabot:
+    name: Update Dependabot
     runs-on: ubuntu-latest
     needs: [check-prerequisites, publish-release]
     if: success()
@@ -392,54 +400,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          ref: main
           token: ${{ secrets.GOAT_BOT_REPO_ACCESS }}
-          
-      - name: Adjust latest tag if needed
-        if: ${{ needs.check-prerequisites.outputs.is_patch == 'true' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LATEST_BEFORE: ${{ needs.check-prerequisites.outputs.latest_before }}
-          CURRENT_RELEASE: ${{ needs.check-prerequisites.outputs.current_release }}
-        run: |
-          if [ "$(printf '%s\n' "$CURRENT_RELEASE" "$LATEST_BEFORE" | sort -V | head -n1)" = "$CURRENT_RELEASE" ]; then 
-            echo "${LATEST_BEFORE} should be marked as latest release"
-            RELEASE_ID=$(curl -s \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/tags/${LATEST_BEFORE}" | jq -r '.id')
 
-            curl -X PATCH \
-              -H "Accept: application/vnd.github+json" \
-              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}" \
-              -d '{"make_latest":"true"}'
-          else
-            echo "No action needed: $CURRENT_RELEASE is the latest"
-          fi
-
-      - name: Update Dependabot for major/minor releases
-        if: ${{ needs.check-prerequisites.outputs.is_patch == 'false' }}
+      - name: Update Dependabot
         env:
           GH_TOKEN: ${{ secrets.GOAT_BOT_REPO_ACCESS }}
-          CURRENT_RELEASE: ${{ needs.check-prerequisites.outputs.current_release }}
+          CURRENT_RELEASE: "${{ github.event.inputs.version }}"
           USERNAME: ${{ vars.ACTIONS_BOT_NAME }}
           EMAIL: ${{ vars.ACTIONS_BOT_EMAIL }}
         run: |
           git config user.name "${USERNAME}"
           git config user.email "${EMAIL}"
-
-          git checkout -b "dependabot-config/${CURRENT_RELEASE}"
-          git fetch origin
-          git reset --hard origin/main
-
-          MAJOR_MINOR=$(echo "${CURRENT_RELEASE}" | grep -Eo '^[0-9]+\.[0-9]+')
-          sed -i "s|release\-.*|release\-$MAJOR_MINOR\"|g" .github/dependabot.yml
+          
+          ./scripts/update_release_in_dependabot.sh
+          
           git add .
           if git diff-index --quiet HEAD; then
-            echo "Error: No changes detected"
-            exit 1
+            echo "No changes detected, skipping commit"
+          else
+            echo "Dependabot config updated, creating PR"
+            git checkout -b "dependabot-config/${CURRENT_RELEASE}"
+            git commit -m "update dependabot.yml" -m "Generated by GitHub Actions"
+            git push -f -u origin "dependabot-config/${CURRENT_RELEASE}"
+            gh pr create --base main --head "dependabot-config/${CURRENT_RELEASE}" --fill || true
           fi
-          git commit -m "update dependabot.yml" -m "Generated by GitHub Actions"
-          git push -f -u origin "dependabot-config/${CURRENT_RELEASE}"
-          gh pr create --base main --head "dependabot-config/${CURRENT_RELEASE}" --fill || true 
