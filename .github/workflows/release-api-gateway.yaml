@@ -8,9 +8,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version"
+        description: "Version to be released (major.minor.patch)"
         default: ""
         required: true
+      skip_checks:
+        description: "Skip sanity checks"
+        type: boolean
+        required: false
+        default: false
 
 env:
   IMAGE_NAME: "europe-docker.pkg.dev/kyma-project/prod/api-gateway/releases/api-gateway-manager"
@@ -23,9 +28,10 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Validate version format
-        id: validate-version
+        id: validate-version-format
+        if: ! ${{ inputs.skip_checks }}
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           if [[ ! "${CURRENT_RELEASE}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version ${CURRENT_RELEASE} does not have proper format!";
@@ -34,8 +40,9 @@ jobs:
 
       - name: Ensure that release is done from the proper branch
         id: check-branch-name
+        if: ! ${{ inputs.skip_checks }}
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
           BRANCH_NAME: ${{ github.ref_name }}
         run: |
           major=$(echo "${CURRENT_RELEASE}" | cut -d. -f1)
@@ -47,8 +54,9 @@ jobs:
 
       - name: Check whether tag already exists before the release
         id: check-whether-tag-exists-before-release
+        if: ! ${{ inputs.skip_checks }}
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           if git ls-remote --quiet --exit-code origin "refs/tags/${CURRENT_RELEASE}" >/dev/null; then
             echo "Tag already exists, which is unexpected before the release"
@@ -57,8 +65,9 @@ jobs:
 
       - name: Check whether image already exists before the release
         id: check-whether-image-exists-before-release
+        if: ! ${{ inputs.skip_checks }}
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           image="${IMAGE_NAME}:${CURRENT_RELEASE}"
           if docker pull "${image}" >/dev/null 2>&1; then
@@ -68,6 +77,7 @@ jobs:
 
       - name: Ensure that sec-scanners-config doesn't contain bdba section
         id: check-sec-scanners-config
+        if: ! ${{ inputs.skip_checks }}
         run: |
           cat sec-scanners-config.yaml
           if grep -q bdba sec-scanners-config.yaml; then
@@ -77,8 +87,9 @@ jobs:
 
       - name: Check whether release notes exist
         id: check-release-notes
+        if: ! ${{ inputs.skip_checks }}
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           rel_notes_file="docs/release-notes/${CURRENT_RELEASE}.md"
           if [ ! -f "${rel_notes_file}" ]; then
@@ -89,14 +100,14 @@ jobs:
   build-image:
     name: Build image
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
-    needs: [check-prerequisites]
+    needs: [ check-prerequisites ]
     with:
       name: api-gateway/releases/api-gateway-manager
       dockerfile: Dockerfile
       context: .
       build-args: |
-        VERSION="${{ github.event.inputs.version }}"
-      tags: "${{ github.event.inputs.version }}"
+        VERSION="${{ inputs.version }}"
+      tags: "${{ inputs.version }}"
 
   get-image:
     name: Get api-gateway image
@@ -110,7 +121,7 @@ jobs:
         name: get image
         shell: bash
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           #image="${IMAGE_NAME}:${CURRENT_RELEASE}"
           image="${IMAGE_NAME}:3.4.1"
@@ -323,7 +334,7 @@ jobs:
       - name: Create changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: ./scripts/create_changelog.sh "${CURRENT_RELEASE}" "CHANGELOG.md"
 
       - name: Create draft release
@@ -331,7 +342,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           release_notes_file="docs/release-notes/${CURRENT_RELEASE}.md"
           changelog_file="CHANGELOG.md"
@@ -341,7 +352,7 @@ jobs:
 
       - name: Create lightweight tag
         env:
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
         run: |
           git tag "${CURRENT_RELEASE}"
           git push origin "${CURRENT_RELEASE}"
@@ -358,7 +369,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-          CURRENT_RELEASE: ${{ github.event.inputs.version }}
+          CURRENT_RELEASE: ${{ inputs.version }}
           RELEASE_ID: ${{ needs.create-draft.outputs.release_id }}
         run: ./scripts/publish_assets.sh "${IMAGE_NAME}" "${CURRENT_RELEASE}" "${RELEASE_ID}"
 
@@ -383,7 +394,7 @@ jobs:
           payload-templated: true
           payload: |
             repository: ${{ github.repository }},
-            release: "${{ github.event.inputs.version }}"
+            release: "${{ inputs.version }}"
 
   adjust-dependabot:
     name: Update Dependabot
@@ -402,7 +413,7 @@ jobs:
 
       - name: Update Dependabot
         env:
-          CURRENT_RELEASE: "${{ github.event.inputs.version }}"
+          CURRENT_RELEASE: "${{ inputs.version }}"
         run: |
           ./scripts/update_release_in_dependabot.sh "${CURRENT_RELEASE}" "main/.github/dependabot.yml"
 
