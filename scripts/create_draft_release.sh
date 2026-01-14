@@ -16,7 +16,7 @@ release_id_output_file=$4
 repository="${REPOSITORY:-kyma-project/api-gateway}"
 github_api_repo_url="https://api.github.com/repos/${repository}"
 
-echo "Release tag: ${release_tag}"
+echo "Create draft release: repository: ${repository}, release notes path: ${release_notes_path}, changelog path: ${changelog_file_path}, output file: ${release_id_output_file}"
 
 echo "Preparing release payload"
 body=$(cat "${release_notes_path}" <(echo) "${changelog_file_path}")

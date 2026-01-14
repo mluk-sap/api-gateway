@@ -8,11 +8,13 @@ set -o errexit  # exit immediately when a command fails.
 set -E          # needs to be set if we want the ERR trap
 set -o pipefail # prevents errors in a pipeline from being masked
 
-current_release=$1
+release_tag=$1
 dependabot_file=$2
 
-major=$(echo "${current_release}" | cut -d. -f1)
-minor=$(echo "${current_release}" | cut -d. -f2)
+echo "Update release in dependabot: release tag: ${release_tag}"
+
+major=$(echo "${release_tag}" | cut -d. -f1)
+minor=$(echo "${release_tag}" | cut -d. -f2)
 current_major_minor="${major}.${minor}"
 
 version_regex='\(.*\"release-\)\(.*\)\(\".*\)'

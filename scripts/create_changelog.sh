@@ -14,6 +14,8 @@ changelog_output_file=$2
 repository="${REPOSITORY:-kyma-project/api-gateway}"
 github_api_repo_url="https://api.github.com/repos/${repository}"
 
+echo "Create changelog: repository: ${repository}, release tag: ${release_tag}, output file: ${changelog_output_file}"
+
 echo "Fetching all release tags"
 tags=$(curl -s -S -f -L \
   -H "Authorization: token ${GITHUB_TOKEN}" \

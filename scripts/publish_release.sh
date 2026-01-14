@@ -13,7 +13,7 @@ release_id=$1
 repository="${REPOSITORY:-kyma-project/api-gateway}"
 github_api_repo_url="https://api.github.com/repos/${repository}"
 
-echo "Release ID = ${release_id}"
+echo "Publish release: repository: ${repository}: release ID: ${release_id}"
 
 echo "Getting information about current release with ID = ${release_id}"
 current_release=$(curl -s -S -f -L \
