@@ -29,7 +29,7 @@ jobs:
 
       - name: Validate version format
         id: validate-version-format
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         env:
           CURRENT_RELEASE: ${{ inputs.version }}
         run: |
@@ -40,7 +40,7 @@ jobs:
 
       - name: Ensure that release is done from the proper branch
         id: check-branch-name
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         env:
           CURRENT_RELEASE: ${{ inputs.version }}
           BRANCH_NAME: ${{ github.ref_name }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Check whether tag already exists before the release
         id: check-whether-tag-exists-before-release
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         env:
           CURRENT_RELEASE: ${{ inputs.version }}
         run: |
@@ -65,7 +65,7 @@ jobs:
 
       - name: Check whether image already exists before the release
         id: check-whether-image-exists-before-release
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         env:
           CURRENT_RELEASE: ${{ inputs.version }}
         run: |
@@ -77,7 +77,7 @@ jobs:
 
       - name: Ensure that sec-scanners-config doesn't contain bdba section
         id: check-sec-scanners-config
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         run: |
           cat sec-scanners-config.yaml
           if grep -q bdba sec-scanners-config.yaml; then
@@ -87,7 +87,7 @@ jobs:
 
       - name: Check whether release notes exist
         id: check-release-notes
-        if: ${{ inputs.skip_checks != 'true' }}
+        if: ${{ inputs.skip_checks == false }}
         env:
           CURRENT_RELEASE: ${{ inputs.version }}
         run: |
