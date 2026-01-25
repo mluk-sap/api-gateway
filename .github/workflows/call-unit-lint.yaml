@@ -17,12 +17,12 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setu-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
         with:
           go-version-file: 'go.mod'
           cache: false # We need to disable caching here, since this is handled by the golangci-lint action
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.2.0
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
         with:
           version: 'latest'
           args: --timeout=10m --verbose
@@ -38,7 +38,7 @@ jobs:
           ./hack/check_manifests_generate.sh
         shell: bash
       - name: Upload generated manifest diff
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: generated-manifest-diff
           path: git-diff.diff
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setu-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
+      - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
         with:
           go-version-file: 'go.mod'
       - name: Run tests
