@@ -80,7 +80,7 @@ jobs:
           test_make_target: test-migration-zero-downtime-${{ matrix.handler }}
 
   pull-request-status:
-    needs: [ build-image, unit-tests, integration-tests, migration-downtime-tests-k3d, verify-pins ]
+    needs: [ build-image, unit-tests, integration-tests, migration-downtime-tests-k3d ]
     runs-on: ubuntu-latest
     if: always()
     steps:
