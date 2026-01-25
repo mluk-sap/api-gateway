@@ -40,7 +40,7 @@ runs:
     - name: Sleep some random time # in order to distribute load on the Gardener and avoid throttling
       shell: bash
       run: sleep $(( RANDOM % 60 ))
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
       with:
         go-version-file: "go.mod"
     - name: Checkout to PR branch # to remove after getting rid of pull_request_target
@@ -103,13 +103,13 @@ runs:
       run: |
         (kubectl --kubeconfig "${GARDENER_KUBECONFIG}" get shoot "${{ env.CLUSTER_NAME }}" -o yaml || true) > logs/shoot.yaml
     - name: Uploads logs
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       if: always()
       with:
         name: logs-${{ github.job }}-${{ inputs.test_make_target }}
         path: logs/
     - name: Uploads artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       if: always()
       with:
         name: html-reports_${{ github.job }}_${{ github.run_id }}_${{ inputs.test_make_target }}_${{ inputs.gardener_provider }}

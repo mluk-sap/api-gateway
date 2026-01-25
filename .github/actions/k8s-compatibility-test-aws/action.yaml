@@ -31,7 +31,7 @@ runs:
     - name: Generate cluster name
       shell: bash
       run: echo CLUSTER_NAME=gha-$(echo $RANDOM | md5sum | head -c 6) >> $GITHUB_ENV
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 #v6.2.0
       with:
         go-version-file: "go.mod"
     - name: Checkout to PR branch # to remove after getting rid of pull_request_target
@@ -71,14 +71,14 @@ runs:
         GO111MODULE=on go install github.com/prometheus/prom2json/cmd/prom2json@v1.3.3
         kubectl get --raw /metrics | prom2json | jq '.[] | select(.name=="apiserver_requested_deprecated_apis").metrics[].labels' > deprecations.txt
       shell: bash
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       with:
         name: html-reports_${{ github.job }}_${{ github.action }}_${{ inputs.test_make_target }}
         path: tests/integration/reports/
     - name: Check that deprecations are empty
       run: if [[ $(cat deprecations.txt | jq 'select(.resource != "endpoints" and .resource != "apirules")') ]]; then exit 1; fi # we ignore apirules as it's our deprecated resource in version v1beta1, also we ignore endpoints as Gardener makes a request to this k8s (since v1.33) deprecated resource, see: https://github.com/gardener/gardener/issues/12154
       shell: bash
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
       with:
         name: deprecation-report-${{ github.job }}-${{ inputs.test_make_target }}
         path: deprecations.txt
