@@ -73,16 +73,16 @@ jobs:
           curl -v "145.133.42.3"
       - shell: bash
         if: always()
-        name: check-cf-fra-1
+        name: check-kyma-ccee-223
         run: |
-          curl -v "3.70.38.218"
+          curl -v "130.214.12.223"
       - shell: bash
         if: always()
-        name: check-cf-fra-2
+        name: check-kyma-ccee-200
         run: |
-          curl -v "3.65.185.47"
+          curl -v "130.214.12.200"
       - shell: bash
         if: always()
-        name: check-cf-fra-3
+        name: check-kyma-ccee-196
         run: |
-          curl -v "18.196.206.8"
+          curl -v "130.214.12.196"
