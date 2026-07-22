@@ -5,8 +5,6 @@ permissions:
   contents: read # This is required for actions/checkout
 
 on:
-  schedule:
-    - cron: '0 5 * * *' # Run every day at 05:00 AM
   workflow_dispatch:
 
 concurrency:

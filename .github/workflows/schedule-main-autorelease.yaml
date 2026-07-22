@@ -5,8 +5,6 @@ permissions:
   contents: write
 
 on:
-  schedule:
-    - cron: '0 3 * * *' # Run every day at 03:00 AM
   workflow_dispatch:
 
 concurrency:

@@ -1,0 +1,88 @@
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  oidc-check:
+    name: OIDC check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        runner_index: [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+    steps:
+      - shell: bash
+        name: runner-ip
+        run: |
+          RUNNER_IP=$(curl -s https://ifconfig.me)
+          echo "This executor's public IP is: $RUNNER_IP"
+      - shell: bash
+        name: check-oidc
+        run: |
+          curl -v "https://kymagoattest.accounts400.ondemand.com/.well-known/openid-configuration"
+      - shell: bash
+        if: always()
+        name: check-cc3-ap-ae-1-a1
+        run: |
+          curl -v "130.214.250.103"
+      - shell: bash
+        if: always()
+        name: check-azr-australiaeast-a2
+        run: |
+          curl -v "4.200.99.225"
+      - shell: bash
+        if: always()
+        name: check-cc3-ap-au-1-a1
+        run: |
+          curl -v "157.133.168.73"
+      - shell: bash
+        if: always()
+        name: check-azr-switzerlandnorth-a1
+        run: |
+          curl -v "20.250.104.193"
+      - shell: bash
+        if: always()
+        name: check-cc3-eu-de-2-a1-ids
+        run: |
+          curl -v "130.214.144.159"
+      - shell: bash
+        if: always()
+        name: check-cc3-eu-de-2-a1
+        run: |
+          curl -v "130.214.144.214"
+      - shell: bash
+        if: always()
+        name: check-cc3-eu-nl-1-a2-ids
+        run: |
+          curl -v "157.133.170.71"
+      - shell: bash
+        if: always()
+        name: check-cc3-eu-nl-1-a2
+        run: |
+          curl -v "157.133.170.72"
+      - shell: bash
+        if: always()
+        name: check-azr-uksouth-a1
+        run: |
+          curl -v "4.250.195.23"
+      - shell: bash
+        if: always()
+        name: check-azr-uksouth-a2
+        run: |
+          curl -v "145.133.42.3"
+      - shell: bash
+        if: always()
+        name: check-cf-fra-1
+        run: |
+          curl -v "3.70.38.218"
+      - shell: bash
+        if: always()
+        name: check-cf-fra-2
+        run: |
+          curl -v "3.65.185.47"
+      - shell: bash
+        if: always()
+        name: check-cf-fra-3
+        run: |
+          curl -v "18.196.206.8"

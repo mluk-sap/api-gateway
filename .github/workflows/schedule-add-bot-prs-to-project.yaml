@@ -8,9 +8,6 @@ permissions:
   pull-requests: read
 
 on:
-  schedule:
-    # run each day
-    - cron: '0 7 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
