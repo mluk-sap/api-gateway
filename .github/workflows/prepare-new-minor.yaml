@@ -69,6 +69,8 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Update Dependabot
+        env:
+          MAINTAINED_RELEASE_BRANCHES_COUNT: ${{ vars.MAINTAINED_RELEASE_BRANCHES_COUNT }}
         run: |
           "${{ github.workspace }}/hack/ci/update-release-in-dependabot.sh"
 

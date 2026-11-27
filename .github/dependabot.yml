@@ -24,14 +24,6 @@ updates:
     commit-message:
       prefix: "docker"
       include: "scope"
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    ignore:
-      - dependency-name: "*"
-        update-types: [ "version-update:semver-patch" ]
-
   # release branch configuration
   - package-ecosystem: "gomod"
     directory: "/"
@@ -63,3 +55,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+        update-types: [ "version-update:semver-patch" ]

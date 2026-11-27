@@ -1,20 +1,32 @@
 #!/usr/bin/env bash
 
-# Updates the release branch in dependabot.yml to match MINOR_VERSION file.
+# Regenerates dependabot.yml from templates for all maintained release branches.
 
 set -eo pipefail
 script_dir="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=./common.sh
 source "${script_dir}/common.sh"
 
-minor_version_file="${script_dir}/../../MINOR_VERSION"
-if [ ! -f "${minor_version_file}" ]; then
-  >&2 echo "ERROR: MINOR_VERSION file not found at ${minor_version_file}"
-  exit 1
-fi
+require_vars MAINTAINED_RELEASE_BRANCHES_COUNT
+require_tools gh envsubst
 
-minor_version=$(cat "${minor_version_file}")
 dependabot_file="${script_dir}/../../.github/dependabot.yml"
+main_tmpl="${script_dir}/dependabot-main.yml.tmpl"
+release_tmpl="${script_dir}/dependabot-release-branch.yml.tmpl"
+github_actions_tmpl="${script_dir}/dependabot-github-actions.yml.tmpl"
 
-echo "Updating dependabot.yml release branch to release-${minor_version}"
-sed -i'' "s|release-[0-9]*\.[0-9]*|release-${minor_version}|g" "${dependabot_file}"
+branches=$("${script_dir}/find-maintained-release-branches.sh")
+echo "Maintained release branches:"
+echo "${branches}"
+
+{
+  printf 'version: 2\nupdates:\n'
+  cat "${main_tmpl}"
+  for branch in ${branches}; do
+    echo "Adding dependabot entries for ${branch}" >&2
+    BRANCH="${branch}" envsubst '$BRANCH' < "${release_tmpl}"
+  done
+  cat "${github_actions_tmpl}"
+} > "${dependabot_file}"
+
+echo "Updated ${dependabot_file}"
